@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Data;
 using System.Data.SqlClient;
+using System.Globalization;
 
 namespace CampeonatoFutebol
 {
-    class Program
+    public class Program
     {
         static string connectionString = "Server=127.0.0.1; Database=DBCampeonatoFutebol; User Id=sa; Password=SqlServer2019!; ";
 
@@ -19,18 +20,20 @@ namespace CampeonatoFutebol
             {
                 Console.Clear();
                 Console.WriteLine("--=== MENU CAMPEONATO DE FUTEBOL ===--\n");
-                Console.WriteLine("1. Cadastrar Time");
-                Console.WriteLine("2. Gerar Jogos");
+                Console.WriteLine("1  - Cadastrar Time");
+                Console.WriteLine("2  - Gerar Jogos");
                 if (jogosCadastrados)
                 {
-                    Console.WriteLine("3. Exibir Campeão");
-                    Console.WriteLine("4. Exibir Top 5 Times");
-                    Console.WriteLine("5. Exibir Time com Mais Gols");
-                    Console.WriteLine("6. Exibir Time que Tomou Mais Gols");
-                    Console.WriteLine("7. Exibir Jogo com Mais Gols");
-                    Console.WriteLine("8. Exibir Maior Número de Gols em Um Jogo por Time");
+                    Console.WriteLine("3  - Exibir Campeão");
+                    Console.WriteLine("4  - Exibir Top 5 Times");
+                    Console.WriteLine("5  - Exibir Time com Mais Gols");
+                    Console.WriteLine("6  - Exibir Time que Tomou Mais Gols");
+                    Console.WriteLine("7  - Exibir Jogo com Mais Gols");
+                    Console.WriteLine("8  - Exibir Maior Número de Gols em Um Jogo por Time");
+                    Console.WriteLine("9  - Imprimir Times do Campeonato");
+                    Console.WriteLine("10 - Cancelar Campeonato");
                 }
-                Console.WriteLine("9. Sair");
+                Console.WriteLine("0  - Sair");
                 Console.Write("\nSelecione uma opção: ");
                 string opc = Console.ReadLine();
                 Console.Clear();
@@ -45,6 +48,8 @@ namespace CampeonatoFutebol
                         if (!jogosJaGerados && timesCadastrados)
                         {
                             GerarJogos();
+                            Console.WriteLine("Os jogos foram gerados com sucesso!");
+                            Console.WriteLine("\nOs times finalizaram o campeonato!");
                             jogosCadastrados = true;
                             jogosJaGerados = true;
                         }
@@ -94,7 +99,19 @@ namespace CampeonatoFutebol
                             Console.WriteLine("Não é possível executar esta opção pois não há jogos cadastrados.");
                         break;
                     case "9":
+                        if (timesCadastrados)
+                            ImprimirTimesCadastrados();
+                        else
+                            Console.WriteLine("Não há times cadastrados para imprimir.");
+                        break;
+                    case "10":
+                        ResetCampeonato();
+                        break;
+
+                    case "0":
                         exit = true;
+                        Console.WriteLine("Fechando o programa...");
+                        Console.WriteLine("\nPrograma Encerrado.");
                         break;
                     default:
                         Console.WriteLine("Opção inválida. Tente novamente.");
@@ -108,7 +125,7 @@ namespace CampeonatoFutebol
                 }
             }
         }
-
+        #region MétodosMain
         static bool VerificarTimesCadastrados()
         {
             using (SqlConnection connection = new SqlConnection(connectionString))
@@ -299,5 +316,47 @@ namespace CampeonatoFutebol
                 }
             }
         }
+
+        static void ImprimirTimesCadastrados()
+        {
+            string query = "SELECT TimeID, Nome FROM Time";
+            ExibirResultado(query, "Times Cadastrados");
+        }
+
+        static void ResetCampeonato()
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+
+               
+                string deleteJogoQuery = "DELETE FROM Jogo";
+                using (SqlCommand deleteJogoCmd = new SqlCommand(deleteJogoQuery, connection))
+                {
+                    deleteJogoCmd.ExecuteNonQuery();
+                }
+
+                
+                string deleteTimeQuery = "DELETE FROM Time";
+                using (SqlCommand deleteTimeCmd = new SqlCommand(deleteTimeQuery, connection))
+                {
+                    deleteTimeCmd.ExecuteNonQuery();
+                }
+
+                
+                string resetIdentityQuery = "DBCC CHECKIDENT ('Jogo', RESEED, 0); DBCC CHECKIDENT ('Time', RESEED, 100)";
+                using (SqlCommand resetIdentityCmd = new SqlCommand(resetIdentityQuery, connection))
+                {
+                    resetIdentityCmd.ExecuteNonQuery();
+                }
+                Console.WriteLine("O campeonato foi cancelado!");
+                Console.WriteLine("Todos os registros cadastrados foram deletados.");
+                Console.ReadLine();
+                Console.Clear();
+                Main(new string[] { });
+            }
+        }
+        #endregion
+
     }
 }
