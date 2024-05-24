@@ -12,8 +12,8 @@ namespace CampeonatoFutebol
         {
             bool exit = false;
             bool jogosCadastrados = VerificarJogosCadastrados();
-            bool jogosJaGerados = jogosCadastrados; // Adiciona uma variável para verificar se os jogos já foram gerados
-            bool timesCadastrados = VerificarTimesCadastrados(); // Verifica se existem times cadastrados
+            bool jogosJaGerados = jogosCadastrados;
+            bool timesCadastrados = VerificarTimesCadastrados();
 
             while (!exit)
             {
@@ -21,7 +21,6 @@ namespace CampeonatoFutebol
                 Console.WriteLine("--=== MENU CAMPEONATO DE FUTEBOL ===--\n");
                 Console.WriteLine("1. Cadastrar Time");
                 Console.WriteLine("2. Gerar Jogos");
-                
                 if (jogosCadastrados)
                 {
                     Console.WriteLine("3. Exibir Campeão");
@@ -40,14 +39,14 @@ namespace CampeonatoFutebol
                 {
                     case "1":
                         CadastrarTime();
-                        timesCadastrados = true; 
+                        timesCadastrados = true;
                         break;
                     case "2":
-                        if (!jogosJaGerados && timesCadastrados) 
+                        if (!jogosJaGerados && timesCadastrados)
                         {
                             GerarJogos();
-                            jogosCadastrados = true; 
-                            jogosJaGerados = true; 
+                            jogosCadastrados = true;
+                            jogosJaGerados = true;
                         }
                         else if (jogosJaGerados)
                         {
@@ -138,55 +137,62 @@ namespace CampeonatoFutebol
             }
         }
 
-
         static void CadastrarTime()
+        {
+            if (ContarTimesCadastrados() >= 5)
+            {
+                Console.WriteLine("O número máximo de 5 times já foi cadastrado.");
+                return;
+            }
+
+            for (int i = 1; i <= 5; i++)
+            {
+                Console.Clear();
+                Console.WriteLine($"Cadastro do Time {i}");
+                Console.Write("Nome: ");
+                string nome = Console.ReadLine();
+                Console.Write("Apelido: ");
+                string apelido = Console.ReadLine();
+                Console.Write("Data de Criação (yyyy-mm-dd): ");
+                DateTime dataCriacao;
+                while (!DateTime.TryParse(Console.ReadLine(), out dataCriacao))
+                {
+                    Console.WriteLine("Formato de data inválido. Por favor, insira a data no formato yyyy-mm-dd.");
+                    Console.Write("Data de Criação (yyyy-mm-dd): ");
+                }
+
+                var novoTime = new Time(0, nome, apelido, dataCriacao);
+                InserirTimeNoBanco(novoTime);
+            }
+        }
+
+        static int ContarTimesCadastrados()
+        {
+            int count = 0;
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                string countQuery = "SELECT COUNT(*) FROM Time";
+                using (SqlCommand countCmd = new SqlCommand(countQuery, connection))
+                {
+                    count = (int)countCmd.ExecuteScalar();
+                }
+            }
+            return count;
+        }
+
+        static void InserirTimeNoBanco(Time time)
         {
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
-
-                // Verificar o número de times cadastrados
-                string countQuery = "SELECT COUNT(*) FROM Time";
-                using (SqlCommand countCmd = new SqlCommand(countQuery, connection))
+                string query = "INSERT INTO Time (Nome, Apelido, DataCriacao) VALUES (@Nome, @Apelido, @DataCriacao)";
+                using (SqlCommand cmd = new SqlCommand(query, connection))
                 {
-                    int timeCount = (int)countCmd.ExecuteScalar();
-                    if (timeCount >= 5)
-                    {
-                        Console.WriteLine("O número máximo de 5 times já foi cadastrado.");
-                        return;
-                    }
-                }
-
-                for (int i = 1; i <= 5; i++)
-                {
-                    // Verificar novamente o número de times antes de cada cadastro
-                    using (SqlCommand countCmd = new SqlCommand(countQuery, connection))
-                    {
-                        int timeCount = (int)countCmd.ExecuteScalar();
-                        if (timeCount >= 5)
-                        {
-                            Console.WriteLine("O número máximo de 5 times já foi cadastrado.");
-                            return;
-                        }
-                    }
-                    Console.Clear();
-                    Console.WriteLine($"Cadastro do Time {i}");
-                    Console.Write("Nome: ");
-                    string nome = Console.ReadLine();
-                    Console.Write("Apelido: ");
-                    string apelido = Console.ReadLine();
-                    Console.Write("Data de Criação (yyyy-mm-dd): ");
-                    DateTime dataCriacao = DateTime.Parse(Console.ReadLine());
-
-                    string query = "INSERT INTO Time (Nome, Apelido, DataCriacao) VALUES (@Nome, @Apelido, @DataCriacao)";
-
-                    using (SqlCommand cmd = new SqlCommand(query, connection))
-                    {
-                        cmd.Parameters.AddWithValue("@Nome", nome);
-                        cmd.Parameters.AddWithValue("@Apelido", apelido);
-                        cmd.Parameters.AddWithValue("@DataCriacao", dataCriacao);
-                        cmd.ExecuteNonQuery();
-                    }
+                    cmd.Parameters.AddWithValue("@Nome", time.Nome);
+                    cmd.Parameters.AddWithValue("@Apelido", time.Apelido);
+                    cmd.Parameters.AddWithValue("@DataCriacao", time.DataCriacao);
+                    cmd.ExecuteNonQuery();
                 }
             }
         }
